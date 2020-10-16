@@ -1,7 +1,14 @@
-from math import e
-from math import tan, pi, sin
-from math import sqrt
+from functools import partial
+from math import e, tan, pi, sin, sqrt
 from enum import Enum
+
+'''
+    HT 梯度风高度
+    m(z) 单位长度（沿z向）上的质量
+    B(z) 结构迎风面宽度
+    R 脉动风荷载的共振分量因子
+    Bz 脉动风荷载的背景分量因子
+'''
 
 
 def w(γ, g, v):
@@ -102,22 +109,16 @@ def z0a(lf: Landform):
     raise Exception()
 
 
-def μz_z_HT_α(z, HTs, HTa, zs, za, αs, αa):
-    '''
-    未截断
-    '''
+def μz_z_HT_α(HTs, HTa, zs, za, αs, αa, z0 = 0):
     return (
         (HTs / zs) ** αs
-        *
-        (z / zs) ** αs
         /
         (HTa / za) ** αa
     ) ** 2
 
 
-def μz_z_s_a(z, s: Landform, a: Landform, zs, za):
-    __z = max(z0a(a), z)
-    return μz_z_HT_α(__z, HT(s), HT(a), zs, za, α(s), α(a))
+def μz_z_s_a(za, a: Landform, zs = 10, s: Landform = Landform.B):
+    return μz_z_HT_α(HT(s), HT(a), zs, max(z0a(a), za), α(s), α(a))
 
 
 def I10(lf: Landform):
@@ -132,15 +133,20 @@ def I10(lf: Landform):
     raise Exception()
 
 
-class 建筑类型(Enum):
+class build(Enum):
+    '''
+    弯剪型
+    弯曲型
+    剪切型
+    '''
     高层建筑 = 1
     高耸结构 = 2
     低层建筑 = 3
 
 
-def k(lf: Landform, bt: 建筑类型):
+def k(lf: Landform, bt: build):
     l = Landform
-    b = 建筑类型
+    b = build
     switch = {
         l.A: {b.高层建筑: 0.944, b.高耸结构: 1.276},
         l.B: {b.高层建筑: 0.670, b.高耸结构: 0.910},
@@ -150,9 +156,9 @@ def k(lf: Landform, bt: 建筑类型):
     return switch[lf][bt]
 
 
-def α1(lf: Landform, bt: 建筑类型):
+def α1(lf: Landform, bt: build):
     l = Landform
-    b = 建筑类型
+    b = build
     switch = {
         l.A: {b.高层建筑: 0.155, b.高耸结构: 0.186},
         l.B: {b.高层建筑: 0.187, b.高耸结构: 0.218},
@@ -162,8 +168,8 @@ def α1(lf: Landform, bt: 建筑类型):
     return switch[lf][bt]
 
 
-def φ1(z, H, bt: 建筑类型):
-    b = 建筑类型
+def φ1(z, H, bt: build):
+    b = build
     if bt == b.高耸结构:
         return 2 * (z / H) ** 2 - 4 / 3 * (z / H) ** 3 + (z / H) ** 4 / 3
     if bt == b.高层建筑:
@@ -184,19 +190,19 @@ def kw(lf: Landform):
     return switch[lf]
 
 
-class 结构材料(Enum):
+class struct(Enum):
     钢结构 = 1
     有填充墙的钢结构 = 2
     钢筋混凝土结构 = 3
     砌体结构 = 3
 
 
-def x1(f1, lf: Landform, w0):
-    return min(30 * f1 / sqrt(kw(lf) * w0), 5)
+def x1(f1, kw, w0):
+    return min(30 * f1 / sqrt(kw * w0), 5)
 
 
-def ξ1(sm: 结构材料):
-    m = 结构材料
+def ξ1(sm: struct):
+    m = struct
     switch = {
         m.钢结构: 0.01,
         m.有填充墙的钢结构: 0.02,
@@ -205,8 +211,8 @@ def ξ1(sm: 结构材料):
     return switch[sm]
 
 
-def R(f1, lf: Landform, w0, sm: 结构材料):
-    __x1 = x1(f1, lf, w0)
+def R(f1, kw, w0, sm: struct):
+    __x1 = x1(f1, kw, w0)
     return sqrt(pi * __x1 ** 2 / 6 / ξ1(sm) / (1 + __x1 ** 2) ** (4/3))
 
 
@@ -219,17 +225,37 @@ def ρz(H):
     return 10 * sqrt(H + 60 * e ** (- H / 60) - 60) / H
 
 
-def Bz(z, H, μz, lf: Landform, bt: 建筑类型):
+def Bz(z, k, H, α1, ρx, ρz, φ1, μz, lf: Landform):
     '''
     脉动风荷载的背景分量因子
     '''
-    return k(lf, bt) * H ** α1(lf, bt) * ρx * ρz * φ1(z, H, bt) / μz(z)
+    switch = {
+        Landform.A: 300,
+        Landform.B: 350,
+        Landform.C: 450,
+        Landform.D: 550,
+    }
+    _H = min(switch[lf], H)
+    return k * H ** α1 * ρx(z) * ρz * φ1(z) / μz(z)
 
 
-def σq(z, H, m, w0, ω1, B, Bz, μz, μs, lf: Landform, bt: 建筑类型, sm: 结构材料):
-    return 2 * w0 * I10(lf) * B(z) * μs / ω1 ** 2 / m * Bz(H, μz, lf, bt) * μz(a) / φ1(z, H, bt) * sqrt(1 + R(sm))
+def σq(z, w0, I10, B, μs, ω1, m, Bz, μz, φ1, R):
+    return (
+        2 * w0 * I10 * B(z) * μs / ω1 ** 2 / m
+        *
+        Bz * μz(z) / φ1(z)
+        *
+        sqrt(1 + R ** 2)
+    )
 
 
-def Pd(z, ω, m, φ):
-    g = 2.5
-    return g * ω ** 2 * m(z) * φ(z) * σq(m)
+def Pd(z, ω1, m, φ1, σq, g = 2.5):
+    return g * ω1 ** 2 * m(z) * φ1(z) * σq(z)
+
+
+def β_z_I10_Bz_R(z, I10, Bz, R, g = 2.5):
+    return 1 + 2 * g * I10 * Bz(z) * sqrt(1 + R ** 2)
+
+
+def w_z(z, w0, μz, μs, β):
+    return β(z) * μs * μz(z) * w0
