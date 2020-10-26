@@ -109,7 +109,7 @@ def z0a(lf: Landform):
     raise Exception()
 
 
-def μz_z_HT_α(HTs, HTa, zs, za, αs, αa, z0 = 0):
+def μz_z_HT_α(HTs, HTa, zs, za, αs, αa, z0=0):
     return (
         (HTs / zs) ** αs
         /
@@ -117,8 +117,38 @@ def μz_z_HT_α(HTs, HTa, zs, za, αs, αa, z0 = 0):
     ) ** 2
 
 
-def μz_z_s_a(za, a: Landform, zs = 10, s: Landform = Landform.B):
+def μz_z_s_a(za, a: Landform, zs=10, s: Landform = Landform.B):
     return μz_z_HT_α(HT(s), HT(a), zs, max(z0a(a), za), α(s), α(a))
+
+
+def exp_μz_z_HT_α(HTs, HTa, zs, αs, αa, z0=0):
+    return (
+        str((HTs / zs) ** (2 * αs) / (HTa ** (2 * αa)))
+        +
+        "*z^"
+        +
+        str(2 * αa)
+    )
+
+def exp_μz_z_div_HT_α(HTs, HTa, za, zs, αs, αa, z0=0):
+    return (
+        str((HTs / zs) ** (2 * αs) / (HTa / za) ** (2 * αa))
+        +
+        "*(z/"
+        +
+        str(za)
+        +
+        ")^"
+        +
+        str(2 * αa)
+    )  
+
+def exp_μz_z_s_a(a: Landform, zs=10, s: Landform = Landform.B):
+    return exp_μz_z_HT_α(HT(s), HT(a), zs, α(s), α(a))
+
+def exp_μz_z_div_s_a(a: Landform, za, zs=10, s: Landform = Landform.B):
+    return exp_μz_z_div_HT_α(HT(s), HT(a), za, zs, α(s), α(a))
+
 
 
 def I10(lf: Landform):
@@ -198,7 +228,7 @@ class struct(Enum):
 
 
 def x1(f1, kw, w0):
-    return min(30 * f1 / sqrt(kw * w0), 5)
+    return max(30 * f1 / sqrt(kw * w0), 5)
 
 
 def ξ1(sm: struct):
@@ -249,12 +279,20 @@ def σq(z, w0, I10, B, μs, ω1, m, Bz, μz, φ1, R):
     )
 
 
-def Pd(z, ω1, m, φ1, σq, g = 2.5):
+def Pd(z, ω1, m, φ1, σq, g=2.5):
     return g * ω1 ** 2 * m(z) * φ1(z) * σq(z)
 
 
-def β_z_I10_Bz_R(z, I10, Bz, R, g = 2.5):
+def β_z_I10_Bz_R(z, I10, Bz, R, g=2.5):
     return 1 + 2 * g * I10 * Bz(z) * sqrt(1 + R ** 2)
+
+
+def β_z_I10_Bz_no(z, I10, Bz, g=2.5):
+    return 1 + 2 * g * I10 * Bz(z)
+
+
+def aw_z(z, w0, μz, μs):
+    return μs * μz(z) * w0
 
 
 def w_z(z, w0, μz, μs, β):
