@@ -1,3 +1,6 @@
+from math import sqrt
+
+
 def σci(M, y0, I0):
     '''
     (5-7)
@@ -51,6 +54,16 @@ def Mcr_middle(αA, ft, b, h):
     return 0.292 * (1 + 2.5 * αA) * ft * b * h**2
 
 
+def ξn(fc, Es, ρ, εc_t=0.0033, ε0=0.002):
+    '''
+
+    '''
+    a = fc * (1 / ε0 - εc_t / 3 / ε0**2)
+    b = Es * ρ
+    c = - Es * ρ
+    return (-b + sqrt(b**2 - 4 * a * c)) / a / 2
+
+
 def Mu_weak(σs, As, h0, ξn):
     '''
     (5-35)
@@ -67,12 +80,12 @@ def ξn_weak_fit(ρ, fy, fc):
     return 1.253 * ρ * fy / fc
 
 
-def Mu_weak_fit(σs, As, h0, ξn):
+def Mu_weak_fit(fy, As, h0, ξn):
     '''
     (5-37)
     强度等级不大于C50的适筋梁
     '''
-    return σs * As * h0 * (1 - 0.412 * ξn)
+    return fy * As * h0 * (1 - 0.412 * ξn)
 
 
 def αA(αE, As, b, h):
@@ -90,6 +103,13 @@ def M_e(σs, As, h0, ξn, ε0, εct):
     return σs * As * h0 * (1 - ξn / 3)
 
 
+def yc_ep_0(ξn, h0, εc_t, ε0=0.002):
+    '''
+    (5-24)
+    '''
+    return ξn * h0 * (4 - (ε0 / εc_t)**2) / (12 - 4 * (ε0 / εc_t))
+
+
 def M_ep_0(σs, As, h0, ξn, ε0, εct):
     '''
     (5-28)
@@ -97,6 +117,17 @@ def M_ep_0(σs, As, h0, ξn, ε0, εct):
     '''
     tmp = εct / ε0
     return σs * As * h0 * (1 - ξn * (4 - tmp) / (3 - tmp) / 4)
+
+
+def yc_ep_1(ξn, h0, εc_t, ε0=0.002):
+    '''
+    (5-30)
+    '''
+    return ξn * h0 * (1 - (6 - (ε0 / εc_t)**2) / (12 - 4 * (ε0 / εc_t)))
+
+
+def ycu(ξn, h0, εcu=0.0033, ε0=0.002):
+    return yc_ep_1(ξn=ξn, h0=h0, εc_t=εcu, ε0=ε0)
 
 
 def M_ep_1(σs, As, h0, ξn, ε0, εct):
