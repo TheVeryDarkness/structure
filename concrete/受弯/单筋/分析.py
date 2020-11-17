@@ -54,14 +54,38 @@ def Mcr_middle(αA, ft, b, h):
     return 0.292 * (1 + 2.5 * αA) * ft * b * h**2
 
 
-def ξn(fc, Es, ρ, εc_t=0.0033, ε0=0.002):
+def ξn_ep1(fc, Es, ρ, εc_t=0.0033, ε0=0.002):
     '''
-
+    5-28
     '''
     a = fc * (1 / ε0 - εc_t / 3 / ε0**2)
     b = Es * ρ
     c = - Es * ρ
-    return (-b + sqrt(b**2 - 4 * a * c)) / a / 2
+    from structure.basic import quadratic_solve
+    return quadratic_solve(a, b, c)
+
+
+def ξn_ep2(fc, Es, ρ, εc_t=0.0033, ε0=0.002):
+    '''
+    5-32
+    '''
+    a = fc * (1 - ε0 / 3 / εc_t)
+    b = Es * εc_t * ρ
+    c = - Es * εc_t * ρ
+    from structure.basic import quadratic_solve
+    return quadratic_solve(a, b, c)
+
+
+def ξn_weak(ρ, fy, fc, Es):
+    '''
+    (5-34)
+    强度等级不大于C50的梁
+    '''
+    a = fc
+    b = 0.00414 * Es * ρ
+    c = - 0.00414 * Es * ρ
+    from structure.basic import quadratic_solve
+    return quadratic_solve(a, b, c)
 
 
 def Mu_weak(σs, As, h0, ξn):

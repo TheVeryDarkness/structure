@@ -37,6 +37,22 @@ def ξb(β1, fy, Es, εcu):
     return β1 / (1 + fy / Es / εcu)
 
 
+def x(α1, fc, b, fy, As):
+    '''
+    (5-47)
+    适筋梁
+    '''
+    return fy * As / α1 / fc / b
+
+
+def Mu_x(fy, As, h0, x):
+    '''
+    (5-48)
+    适筋梁
+    '''
+    return fy * As * (h0 - x / 2)
+
+
 def ξ(ρ, fy, α1, fc):
     '''
     (5-49)
@@ -48,6 +64,7 @@ def ξ(ρ, fy, α1, fc):
 def Mu(As, fy, γs, h0):
     '''
     (5-50)
+    适筋构件
     '''
     return As * fy * γs * h0
 
@@ -97,3 +114,28 @@ def ρmin(ft, fy):
     《混凝土结构设计规范》（GB50010）
     '''
     return 0.45 * ft / fy
+
+
+def σs_linear(fy, ξ, ξb):
+    '''
+    (5-65)
+    '''
+    return fy * (ξ - 0.8) / (ξb - 0.8)
+
+
+def ξ_over(α1, fc, b, h0, ξb, fy, As):
+    '''
+    联立(5-65)和(5-45)
+    超筋构件
+    '''
+    n = 0.8 * fy * As
+    d = fy * As - α1 * fc * b * h0 * (ξb - 0.8)
+    return n / d
+
+
+def Mu_over(fy, ξb, As, h0, ξ):
+    '''
+    联立(5-65)和(5-45)
+    超筋构件
+    '''
+    return fy * (ξ - 0.8) / (ξb - 0.8) * As * h0 * (1 - ξ / 2)
